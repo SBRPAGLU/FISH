@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ping Pong </title>
+    <style>
+        :root {
+            --neon-blue: #0ff0fc;
+            --neon-pink: #ff00ff;
+            --neon-green: #00ff9d;
+            --dark-bg: #0a0a12;
+            --darker-bg: #050508;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated background particles */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            animation: float 15s infinite linear;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100vh) translateX(100px);
+                opacity: 0;
+            }
+        }
+
+        /* Main container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-pink));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+        }
+
+        /* Teachers grid - made more compact */
+        .teachers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.2rem;
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .teachers-grid {
+                grid-template-columns: 1fr;
+                max-width: 300px;
+            }
+        }
+
+        /* Teacher card - more compact */
+        .teacher-card {
+            background: var(--darker-bg);
+            border-radius: 0.8rem;
+            overflow: hidden;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .teacher-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 255, 157, 0.3);
+            border-color: var(--neon-green);
+        }
+
+        .teacher-img {
+            width: 100%;
+            height: 150px; /* Reduced image height */
+            object-fit: cover;
+            display: block;
+        }
+
+        .teacher-name {
+            padding: 0.8rem;
+            text-align: center;
+            font-size: 1rem;
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        /* Game canvas */
+        .game-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--darker-bg);
+            z-index: 100;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .game-header {
+            width: 100%;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .back-btn {
+            background: none;
+            border: 1px solid var(--neon-pink);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: var(--neon-pink);
+            box-shadow: 0 0 10px var(--neon-pink);
+        }
+
+        canvas {
+            background: var(--dark-bg);
+            border-radius: 0.5rem;
+            box-shadow: 0 0 30px rgba(0, 255, 157, 0.2);
+            max-width: 100%;
+            max-height: 90vh;
+            touch-action: none;
+        }
+
+        /* Loading spinner */
+        .loading {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 200;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            border-top-color: var(--neon-blue);
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .speed-meter {
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--neon-blue);
+        }
+
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 2rem;
+            border-radius: 1rem;
+            text-align: center;
+            display: none;
+        }
+
+        .restart-btn {
+            background: var(--neon-pink);
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .restart-btn:hover {
+            background: var(--neon-blue);
+            box-shadow: 0 0 10px var(--neon-blue);
+        }
+    </style>
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+    
+    <div class="container">
+        <h1>Pingu Pongu(specially for nagu sir)</h1>
+        
+        <div class="teachers-grid" id="teachersGrid">
+            <!-- Teacher cards will be inserted here by JavaScript -->
+        </div>
+    </div>
+    
+    <div class="game-container" id="gameContainer">
+        <div class="game-header">
+            <button class="back-btn" id="backBtn">← Back to Teachers</button>
+            <div>
+                <div id="scoreDisplay">Bounces: 0</div>
+                <div class="speed-meter" id="speedMeter">Speed: 1.0x</div>
+            </div>
+        </div>
+        <canvas id="gameCanvas"></canvas>
+        <div class="game-over" id="gameOver">
+            <h2>Yenoo heroo !! game over aytu nind </h2>
+            <p>Final Score: <span id="finalScore">0</span> bounces</p>
+            <button class="restart-btn" id="restartBtn">Play Again</button>
+        </div>
+    </div>
+    
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <div>Loading Game...</div>
+    </div>
+
+    <script>
+        // Your Cloudinary images
+        const teachers = [
+            { 
+                id: 1, 
+                name: "Naguuuuu bhaii ", 
+                image: "https://res.cloudinary.com/dfmhr0tu8/image/upload/v1747056126/2025-05-12T05-05-10.529Z_y5xefc.png"
+            },
+            { 
+                id: 2, 
+                name: "Chomuu", 
+                image: "https://res.cloudinary.com/dfmhr0tu8/image/upload/v1747058868/Screenshot_149_ybdbmf.png"
+            },
+            { 
+                id: 3, 
+                name: "Rajuu ", 
+                image: "https://res.cloudinary.com/dfmhr0tu8/image/upload/v1747058868/Screenshot_148_dytm30.png"
+            }
+        ];
+        
+        // DOM elements
+        const teachersGrid = document.getElementById('teachersGrid');
+        const gameContainer = document.getElementById('gameContainer');
+        const gameCanvas = document.getElementById('gameCanvas');
+        const backBtn = document.getElementById('backBtn');
+        const loading = document.getElementById('loading');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const speedMeter = document.getElementById('speedMeter');
+        const particles = document.getElementById('particles');
+        const gameOver = document.getElementById('gameOver');
+        const finalScore = document.getElementById('finalScore');
+        const restartBtn = document.getElementById('restartBtn');
+        
+        // Game variables
+        let ctx;
+        let ballImage;
+        let ballX, ballY, ballRadius;
+        let ballSpeedX, ballSpeedY;
+        let baseSpeedX, baseSpeedY;
+        let paddleHeight, paddleWidth, paddleX;
+        let canvasWidth, canvasHeight;
+        let bounceCount = 0;
+        let animationId;
+        let isGameRunning = false;
+        let speedMultiplier = 1.0;
+        let isMouseControl = true; // Always enable paddle control
+        
+        // Create particles for background
+        function createParticles() {
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+                particle.style.left = `${Math.random() * 100}%`;
+                particle.style.top = `${Math.random() * 100}%`;
+                particle.style.width = `${Math.random() * 3 + 1}px`;
+                particle.style.height = particle.style.width;
+                particle.style.animationDelay = `${Math.random() * 15}s`;
+                particle.style.animationDuration = `${Math.random() * 10 + 10}s`;
+                particles.appendChild(particle);
+            }
+        }
+        
+        // Initialize teachers grid
+        function initTeachersGrid() {
+            teachersGrid.innerHTML = '';
+            
+            teachers.forEach(teacher => {
+                const card = document.createElement('div');
+                card.className = 'teacher-card';
+                card.dataset.id = teacher.id;
+                
+                card.innerHTML = `
+                    <img src="${teacher.image}" alt="${teacher.name}" class="teacher-img">
+                    <div class="teacher-name">${teacher.name}</div>
+                `;
+                
+                card.addEventListener('click', () => startGame(teacher.image));
+                teachersGrid.appendChild(card);
+            });
+        }
+        
+        // Start the game with selected teacher image
+        function startGame(imageSrc) {
+            loading.style.display = 'flex';
+            gameOver.style.display = 'none';
+            
+            // Reset game variables
+            bounceCount = 0;
+            speedMultiplier = 1.0;
+            scoreDisplay.textContent = `Bounces: ${bounceCount}`;
+            speedMeter.textContent = `Speed: ${speedMultiplier.toFixed(1)}x`;
+            
+            // Load the ball image
+            ballImage = new Image();
+            ballImage.crossOrigin = "Anonymous"; // Handle CORS if needed
+            ballImage.onload = function() {
+                loading.style.display = 'none';
+                initGame();
+            };
+            ballImage.onerror = function() {
+                alert("Error loading image. Please try again.");
+                loading.style.display = 'none';
+            };
+            ballImage.src = imageSrc;
+            
+            // Show game container
+            gameContainer.style.display = 'flex';
+        }
+        
+        // Initialize game
+        function initGame() {
+            // Set canvas dimensions
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            
+            // Get canvas context
+            ctx = gameCanvas.getContext('2d');
+            
+            // Initialize game variables
+            ballRadius = Math.min(gameCanvas.width, gameCanvas.height) * 0.08;
+            ballX = canvasWidth / 2;
+            ballY = canvasHeight / 2;
+            
+            // Increased base speed (was 0.005, now 0.01)
+            baseSpeedX = canvasWidth * 0.01; // 2x faster
+            baseSpeedY = canvasHeight * 0.01; // 2x faster
+            
+            // Apply initial speed
+            ballSpeedX = baseSpeedX * speedMultiplier * (Math.random() > 0.5 ? 1 : -1);
+            ballSpeedY = baseSpeedY * speedMultiplier;
+            
+            // Paddle dimensions
+            paddleHeight = canvasHeight * 0.02;
+            paddleWidth = canvasWidth * 0.2;
+            paddleX = (canvasWidth - paddleWidth) / 2;
+            
+            // Control setup
+            setupControls();
+            
+            // Start game loop
+            isGameRunning = true;
+            gameLoop();
+        }
+        
+        // Resize canvas to fit window
+        function resizeCanvas() {
+            canvasWidth = gameCanvas.width = window.innerWidth * 0.95;
+            canvasHeight = gameCanvas.height = window.innerHeight * 0.85;
+            
+            // Adjust ball position if game is running
+            if (isGameRunning) {
+                ballX = Math.min(ballX, canvasWidth - ballRadius);
+                ballY = Math.min(ballY, canvasHeight - ballRadius);
+                ballRadius = Math.min(canvasWidth, canvasHeight) * 0.08;
+                
+                // Update base speeds based on new canvas size
+                baseSpeedX = canvasWidth * 0.01;
+                baseSpeedY = canvasHeight * 0.01;
+                
+                // Recalculate current speeds with multiplier
+                ballSpeedX = Math.sign(ballSpeedX) * baseSpeedX * speedMultiplier;
+                ballSpeedY = Math.sign(ballSpeedY) * baseSpeedY * speedMultiplier;
+            }
+        }
+        
+        // Setup controls (mouse/touch)
+        function setupControls() {
+            // Mouse movement
+            gameCanvas.addEventListener('mousemove', (e) => {
+                const rect = gameCanvas.getBoundingClientRect();
+                const relativeX = e.clientX - rect.left;
+                paddleX = relativeX - paddleWidth / 2;
+                
+                // Keep paddle within canvas bounds
+                paddleX = Math.max(0, Math.min(canvasWidth - paddleWidth, paddleX));
+            });
+            
+            // Touch movement
+            gameCanvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                const rect = gameCanvas.getBoundingClientRect();
+                const relativeX = e.touches[0].clientX - rect.left;
+                paddleX = relativeX - paddleWidth / 2;
+                
+                // Keep paddle within canvas bounds
+                paddleX = Math.max(0, Math.min(canvasWidth - paddleWidth, paddleX));
+            });
+        }
+        
+        // Calculate speed multiplier based on bounce count
+        function calculateSpeedMultiplier() {
+            // Increase speed every 5 bounces
+            const speedSteps = Math.floor(bounceCount / 5);
+            
+            // Cap the maximum speed multiplier at 5x
+            return Math.min(1.0 + (speedSteps * 0.2), 5.0);
+        }
+        
+        // End the game
+        function endGame() {
+            isGameRunning = false;
+            cancelAnimationFrame(animationId);
+            finalScore.textContent = bounceCount;
+            gameOver.style.display = 'block';
+        }
+        
+        // Main game loop
+        function gameLoop() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+            
+            // Draw ball (teacher's face)
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
+            ctx.closePath();
+            ctx.clip();
+            ctx.drawImage(
+                ballImage, 
+                ballX - ballRadius, 
+                ballY - ballRadius, 
+                ballRadius * 2, 
+                ballRadius * 2
+            );
+            ctx.restore();
+            
+            // Draw paddle
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(paddleX, canvasHeight - paddleHeight - 10, paddleWidth, paddleHeight);
+            
+            // Add glow effect to paddle
+            ctx.shadowColor = '#0ff0fc';
+            ctx.shadowBlur = 15;
+            ctx.fillRect(paddleX, canvasHeight - paddleHeight - 10, paddleWidth, paddleHeight);
+            ctx.shadowBlur = 0;
+            
+            // Update speed multiplier based on bounce count
+            const newSpeedMultiplier = calculateSpeedMultiplier();
+            if (newSpeedMultiplier !== speedMultiplier) {
+                speedMultiplier = newSpeedMultiplier;
+                speedMeter.textContent = `Speed: ${speedMultiplier.toFixed(1)}x`;
+                
+                // Apply new speed while maintaining direction
+                ballSpeedX = Math.sign(ballSpeedX) * baseSpeedX * speedMultiplier;
+                ballSpeedY = Math.sign(ballSpeedY) * baseSpeedY * speedMultiplier;
+            }
+            
+            // Move ball
+            ballX += ballSpeedX;
+            ballY += ballSpeedY;
+            
+            // Ball collision with side walls
+            if (ballX + ballRadius > canvasWidth || ballX - ballRadius < 0) {
+                ballSpeedX = -ballSpeedX;
+                bounceCount++;
+                scoreDisplay.textContent = `Bounces: ${bounceCount}`;
+            }
+            
+            // Ball collision with top wall
+            if (ballY - ballRadius < 0) {
+                ballSpeedY = -ballSpeedY;
+                bounceCount++;
+                scoreDisplay.textContent = `Bounces: ${bounceCount}`;
+            }
+            
+            // Ball collision with paddle
+            if (ballY + ballRadius > canvasHeight - paddleHeight - 10 && 
+                ballY + ballRadius < canvasHeight &&
+                ballX > paddleX && 
+                ballX < paddleX + paddleWidth) {
+                
+                ballSpeedY = -ballSpeedY * 1.05;
+                bounceCount++;
+                scoreDisplay.textContent = `Bounces: ${bounceCount}`;
+                
+                // Add angle based on where ball hits paddle
+                const hitPosition = (ballX - paddleX) / paddleWidth;
+                ballSpeedX = (hitPosition - 0.5) * 10 * speedMultiplier;
+            } 
+            // Ball missed paddle - game over
+            else if (ballY + ballRadius > canvasHeight) {
+                endGame();
+                return;
+            }
+            
+            // Continue animation
+            animationId = requestAnimationFrame(gameLoop);
+        }
+        
+        // Back to teachers grid
+        function backToTeachers() {
+            cancelAnimationFrame(animationId);
+            isGameRunning = false;
+            gameContainer.style.display = 'none';
+            window.removeEventListener('resize', resizeCanvas);
+        }
+        
+        // Event listeners
+        backBtn.addEventListener('click', backToTeachers);
+        restartBtn.addEventListener('click', () => {
+            startGame(ballImage.src);
+        });
+        
+        // Initialize the app
+        function initApp() {
+            createParticles();
+            initTeachersGrid();
+        }
+        
+        // Start the app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
